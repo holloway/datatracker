@@ -34,6 +34,7 @@ def telechat_page_count(date=None, docs=None, ad=None):
             if ballot:
                 positions = ballot.active_balloter_positions()
                 ad_position = positions[ad]
+                print("ad_position", ad_position)
                 if ad_position is None or ad_position == "norecord":
                     ad_pages_left_to_ballot_on += draft.pages or 0
 

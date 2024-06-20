@@ -19,7 +19,7 @@ import debug                            # pyflakes:ignore
 from ietf.doc.models import DocEvent, BallotPositionDocEvent, TelechatDocEvent
 from ietf.doc.models import Document, State, RelatedDocument
 from ietf.doc.factories import WgDraftFactory, IndividualDraftFactory, ConflictReviewFactory, BaseDocumentFactory, CharterFactory, WgRfcFactory, IndividualRfcFactory
-from ietf.doc.utils import create_ballot_if_not_open
+from ietf.doc.utils import create_ballot_if_not_open, update_telechat
 from ietf.group.factories import RoleFactory, GroupFactory, DatedGroupMilestoneFactory, DatelessGroupMilestoneFactory
 from ietf.group.models import Group, GroupMilestone, Role
 from ietf.iesg.agenda import get_agenda_date, agenda_data, fill_in_agenda_administrivia, agenda_sections
@@ -584,90 +584,27 @@ class IESGAgendaTelechatPagesTests(TestCase):
     def setUp(self):
         super().setUp()
 
-        # ad = Person.objects.get(user__username="ad")
+        ad = Person.objects.get(user__username="ad")
 
-        by = Person.objects.get(name="Areað Irector")
+        draft = WgDraftFactory(
+            states=[('draft','active'),('draft-iesg','iesg-eva')],
+            ad=ad,
+            pages=10
+        )
 
-        mars = GroupFactory(acronym='mars',parent=Group.objects.get(acronym='farfut'))
-
-        agenda_date = get_agenda_date()
-
-        mars = GroupFactory(acronym='mars',parent=Group.objects.get(acronym='farfut'))
-        wgdraft = WgDraftFactory(name='draft-ietf-mars-test', group=mars, intended_std_level_id='ps')
-        rfc = IndividualRfcFactory.create(stream_id='irtf', rfc_number=6666, std_level_id='inf', )
-        wgdraft.relateddocument_set.create(target=rfc, relationship_id='refnorm')
-        ise_draft = IndividualDraftFactory(name='draft-imaginary-independent-submission')
-        ise_draft.stream = StreamName.objects.get(slug="ise")
-        ise_draft.save_with_history([DocEvent(doc=ise_draft, rev=ise_draft.rev, type="changed_stream", by=Person.objects.get(user__username="secretary"), desc="Test")])
-
-        date = date_today(settings.TIME_ZONE) + datetime.timedelta(days=50)
-        TelechatDate.objects.create(date=date)
-
-        telechat_event = TelechatDocEvent.objects.create(
-            type="scheduled_for_telechat",
-            doc=wgdraft,
-            rev=wgdraft.rev,
-            by=by,
-            telechat_date=date,
-            returning_item=True)
-        telechat_event.save()
-
-        ConflictReviewFactory(name='conflict-review-imaginary-irtf-submission', review_of=ise_draft)
-        BaseDocumentFactory(type_id='statchg',name='status-change-imaginary-mid-review')
-        WgRfcFactory(std_level_id='inf')
-        WgRfcFactory(std_level_id='ps')
-        CharterFactory(states=[('charter','iesgrev')])
-
-        self.telechat_docs = {
-            "ietf_draft": Document.objects.get(name="draft-ietf-mars-test"),
-            "ise_draft": ise_draft,
-            "conflrev": Document.objects.get(name="conflict-review-imaginary-irtf-submission"),
-            "statchg": Document.objects.get(name="status-change-imaginary-mid-review"),
-            "charter": Document.objects.filter(type="charter")[0],
-            } 
-
-        by = Person.objects.get(name="Areað Irector")
-        date = get_agenda_date()
-
-        for d in list(self.telechat_docs.values()):
-            TelechatDocEvent.objects.create(type="scheduled_for_telechat",
-                                            doc=d,
-                                            rev=d.rev,
-                                            by=by,
-                                            telechat_date=date,
-                                            returning_item=True)
-
-        # mars = GroupFactory(acronym='mars',parent=Group.objects.get(acronym='farfut'))
-        dates = list(TelechatDate.objects.order_by('date').values_list("date", flat=True)[:4])
-        for index, date in enumerate(dates):
-            for n in range(10):
-                # candidates = Document.objects.filter(
-                #   docevent__telechatdocevent__telechat_date=date
-                # ).distinct() 
-                draft = WgDraftFactory(
-                    name='draft-ietf-test-%s-%i' % (date, n),
-                    # time=date,
-                    group=mars,
-                    intended_std_level_id='ps',
-                    pages=20 * (index + 1)
-                )
-                TelechatDocEvent.objects.create(type="scheduled_for_telechat",
-                                            doc=draft,
-                                            rev=draft.rev,
-                                            by=by,
-                                            telechat_date=agenda_date,
-                                            returning_item=True)
-                # update_telechat(None, draft, ad, date)
-                # ballot = create_ballot_if_not_open(None, draft, ad, 'approve')
-                # pos = BallotPositionDocEvent()
-                # pos.ballot = ballot
-                # pos.pos_id = "discuss"
-                # pos.type = "changed_ballot_position"
-                # pos.doc = draft
-                # pos.rev = draft.rev
-                # pos.balloter = pos.by = ad
-                # pos.save()
+        dates = list(TelechatDate.objects.active().order_by('date').values_list("date", flat=True)[:4])
+        print("dates", dates)
         
+        ballot = create_ballot_if_not_open(None, draft, ad, 'approve')
+        pos = BallotPositionDocEvent()
+        pos.ballot = ballot
+        pos.pos_id = "discuss"
+        pos.type = "changed_ballot_position"
+        pos.doc = draft
+        pos.rev = draft.rev
+        pos.balloter = pos.by = ad
+        pos.save()
+        update_telechat(None, draft, ad, dates[0])
 
     def test_ad_pages_left_to_ballot_on(self):
         url = urlreverse("ietf.iesg.views.agenda_documents")
