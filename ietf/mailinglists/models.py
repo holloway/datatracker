@@ -14,13 +14,12 @@ from ietf.utils.models import ForeignKey
 # while decoupling from mailman2 until we integrate with mailman3
 class NonWgMailingList(models.Model):
     name = models.CharField(max_length=32)
-    domain = models.CharField(max_length=32, default="ietf.org")
     description = models.CharField(max_length=256)
 
     def __str__(self):
         return "<NonWgMailingList: %s>" % self.name
     def info_url(self):
-        return settings.MAILING_LIST_INFO_URL % {'list_addr': self.name.lower(), 'domain': self.domain.lower() }
+        return settings.MAILING_LIST_INFO_URL % {'list_addr': self.name }
 
 # Allowlisted is unused, but is not being dropped until its human-curated content 
 # is archived outside this database.

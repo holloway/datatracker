@@ -2,8 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: beat
-  labels:
-    deleteBeforeUpgrade: yes
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -60,4 +58,4 @@ spec:
             name: files-cfgmap
       dnsPolicy: ClusterFirst
       restartPolicy: Always
-      terminationGracePeriodSeconds: 600
+      terminationGracePeriodSeconds: 30

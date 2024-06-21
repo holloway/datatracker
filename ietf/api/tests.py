@@ -10,7 +10,6 @@ import sys
 
 from importlib import import_module
 from pathlib import Path
-from random import randrange
 
 from django.apps import apps
 from django.conf import settings
@@ -1073,20 +1072,8 @@ class CustomApiTests(TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertFalse(any(m.called for m in mocks))
 
-        # bad destination
-        message_b64 = base64.b64encode(b"This is a message").decode()
-        r = self.client.post(
-            url,
-            {"dest": "not-a-destination", "message": message_b64},
-            content_type="application/json",
-            headers={"X-Api-Key": "valid-token"},
-        )
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.headers["Content-Type"], "application/json")
-        self.assertEqual(json.loads(r.content), {"result": "bad_dest"})
-        self.assertFalse(any(m.called for m in mocks))
-
         # test that valid requests call handlers appropriately
+        message_b64 = base64.b64encode(b"This is a message").decode()
         r = self.client.post(
             url,
             {"dest": "iana-review", "message": message_b64},
@@ -1094,8 +1081,6 @@ class CustomApiTests(TestCase):
             headers={"X-Api-Key": "valid-token"},
         )
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.headers["Content-Type"], "application/json")
-        self.assertEqual(json.loads(r.content), {"result": "ok"})
         self.assertTrue(mock_iana_ingest.called)
         self.assertEqual(mock_iana_ingest.call_args, mock.call(b"This is a message"))
         self.assertFalse(any(m.called for m in (mocks - {mock_iana_ingest})))
@@ -1108,44 +1093,20 @@ class CustomApiTests(TestCase):
             headers={"X-Api-Key": "valid-token"},
         )
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.headers["Content-Type"], "application/json")
-        self.assertEqual(json.loads(r.content), {"result": "ok"})
         self.assertTrue(mock_ipr_ingest.called)
         self.assertEqual(mock_ipr_ingest.call_args, mock.call(b"This is a message"))
         self.assertFalse(any(m.called for m in (mocks - {mock_ipr_ingest})))
         mock_ipr_ingest.reset_mock()
 
-        # bad nomcom-feedback dest
-        for bad_nomcom_dest in [
-            "nomcom-feedback",  # no suffix
-            "nomcom-feedback-",  # no year
-            "nomcom-feedback-squid",  # not a year,
-            "nomcom-feedback-2024-2025",  # also not a year
-        ]:
-            r = self.client.post(
-                url,
-                {"dest": bad_nomcom_dest, "message": message_b64},
-                content_type="application/json",
-                headers={"X-Api-Key": "valid-token"},
-            )
-            self.assertEqual(r.status_code, 200)
-            self.assertEqual(r.headers["Content-Type"], "application/json")
-            self.assertEqual(json.loads(r.content), {"result": "bad_dest"})
-            self.assertFalse(any(m.called for m in mocks))
-
-        # good nomcom-feedback dest
-        random_year = randrange(100000)
         r = self.client.post(
             url,
-            {"dest": f"nomcom-feedback-{random_year}", "message": message_b64},
+            {"dest": "nomcom-feedback", "message": message_b64, "year": 2024},  # arbitrary year
             content_type="application/json",
             headers={"X-Api-Key": "valid-token"},
         )
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.headers["Content-Type"], "application/json")
-        self.assertEqual(json.loads(r.content), {"result": "ok"})
         self.assertTrue(mock_nomcom_ingest.called)
-        self.assertEqual(mock_nomcom_ingest.call_args, mock.call(b"This is a message", random_year))
+        self.assertEqual(mock_nomcom_ingest.call_args, mock.call(b"This is a message", 2024))
         self.assertFalse(any(m.called for m in (mocks - {mock_nomcom_ingest})))
         mock_nomcom_ingest.reset_mock()
 
@@ -1157,9 +1118,7 @@ class CustomApiTests(TestCase):
             content_type="application/json",
             headers={"X-Api-Key": "valid-token"},
         )
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.headers["Content-Type"], "application/json")
-        self.assertEqual(json.loads(r.content), {"result": "bad_msg"})
+        self.assertEqual(r.status_code, 400)
         self.assertTrue(mock_iana_ingest.called)
         self.assertEqual(mock_iana_ingest.call_args, mock.call(b"This is a message"))
         self.assertFalse(any(m.called for m in (mocks - {mock_iana_ingest})))
@@ -1179,9 +1138,7 @@ class CustomApiTests(TestCase):
                 content_type="application/json",
                 headers={"X-Api-Key": "valid-token"},
             )
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.headers["Content-Type"], "application/json")
-        self.assertEqual(json.loads(r.content), {"result": "bad_msg"})
+        self.assertEqual(r.status_code, 400)
         self.assertTrue(mock_iana_ingest.called)
         self.assertEqual(mock_iana_ingest.call_args, mock.call(b"This is a message"))
         self.assertFalse(any(m.called for m in (mocks - {mock_iana_ingest})))
@@ -1210,9 +1167,7 @@ class CustomApiTests(TestCase):
                 content_type="application/json",
                 headers={"X-Api-Key": "valid-token"},
             )
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.headers["Content-Type"], "application/json")
-        self.assertEqual(json.loads(r.content), {"result": "bad_msg"})
+        self.assertEqual(r.status_code, 400)
         self.assertTrue(mock_iana_ingest.called)
         self.assertEqual(mock_iana_ingest.call_args, mock.call(b"This is a message"))
         self.assertFalse(any(m.called for m in (mocks - {mock_iana_ingest})))
@@ -1237,9 +1192,7 @@ class CustomApiTests(TestCase):
                 content_type="application/json",
                 headers={"X-Api-Key": "valid-token"},
             )
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.headers["Content-Type"], "application/json")
-        self.assertEqual(json.loads(r.content), {"result": "bad_msg"})
+        self.assertEqual(r.status_code, 400)
         self.assertTrue(mock_iana_ingest.called)
         self.assertEqual(mock_iana_ingest.call_args, mock.call(b"This is a message"))
         self.assertFalse(any(m.called for m in (mocks - {mock_iana_ingest})))

@@ -285,7 +285,7 @@
                 <tr>
                     <th scope="row">Author {{ forloop.counter }}</th>
                     <td>
-                        {% if author.name %}{{ author.name }}{% endif %}
+                        {{ author.name }}
                         {% if author.email %}&lt;{{ author.email|linkify }}&gt;{% endif %}
                         <br>
                         {% if author.affiliation %}

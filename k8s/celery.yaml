@@ -2,8 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: celery
-  labels:
-    deleteBeforeUpgrade: yes
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -26,15 +24,6 @@ spec:
         - name: scoutapm
           image: "scoutapp/scoutapm:version-1.4.0"
           imagePullPolicy: IfNotPresent
-          # Replace command with one that will shut down on a TERM signal
-          # The ./core-agent start command line is from the scoutapm docker image
-          command:
-            - "sh"
-            - "-c"
-            - >-
-              trap './core-agent shutdown --tcp 0.0.0.0:6590' TERM;
-              ./core-agent start --daemonize false --log-level debug --tcp 0.0.0.0:6590 &
-              wait $!
           livenessProbe:
             exec:
               command:
@@ -60,10 +49,6 @@ spec:
               mountPath: /a
             - name: dt-tmp
               mountPath: /tmp
-            - name: dt-home
-              mountPath: /home/datatracker
-            - name: dt-xml2rfc-cache
-              mountPath: /var/cache/xml2rfc
             - name: dt-cfg
               mountPath: /workspace/ietf/settings_local.py
               subPath: settings_local.py
@@ -87,15 +72,9 @@ spec:
         - name: dt-tmp
           emptyDir:
             sizeLimit: "2Gi"
-        - name: dt-xml2rfc-cache
-          emptyDir:
-            sizeLimit: "2Gi"
-        - name: dt-home
-          emptyDir:
-            sizeLimit: "2Gi"
         - name: dt-cfg
           configMap:
             name: files-cfgmap
       dnsPolicy: ClusterFirst
       restartPolicy: Always
-      terminationGracePeriodSeconds: 600
+      terminationGracePeriodSeconds: 30
