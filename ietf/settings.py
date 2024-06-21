@@ -671,6 +671,7 @@ INTERNET_DRAFT_PDF_PATH = '/a/www/ietf-datatracker/pdf/'
 RFC_PATH = '/a/www/ietf-ftp/rfc/'
 CHARTER_PATH = '/a/ietfdata/doc/charter/'
 CHARTER_COPY_PATH = '/a/www/ietf-ftp/ietf'  # copy 1wg-charters files here if set
+GROUP_SUMMARY_PATH = '/a/www/ietf-ftp/ietf'
 BOFREQ_PATH = '/a/ietfdata/doc/bofreq/'
 CONFLICT_REVIEW_PATH = '/a/ietfdata/doc/conflict-review'
 STATUS_CHANGE_PATH = '/a/ietfdata/doc/status-change'
@@ -690,7 +691,7 @@ ALL_ID_DOWNLOAD_DIR = '/a/www/www6s/download'
 DOCUMENT_FORMAT_ALLOWLIST = ["txt", "ps", "pdf", "xml", "html", ]
 
 # Mailing list info URL for lists hosted on the IETF servers
-MAILING_LIST_INFO_URL = "https://www.ietf.org/mailman/listinfo/%(list_addr)s"
+MAILING_LIST_INFO_URL = "https://mailman3.%(domain)s/mailman3/lists/%(list_addr)s.%(domain)s"
 MAILING_LIST_ARCHIVE_URL = "https://mailarchive.ietf.org"
 
 # Liaison Statement Tool settings (one is used in DOC_HREFS below)
@@ -819,8 +820,6 @@ IDSUBMIT_MAX_VALIDATION_TIME = datetime.timedelta(minutes=20)
 
 # Age at which a submission expires if not posted
 IDSUBMIT_EXPIRATION_AGE = datetime.timedelta(days=14)
-
-IDSUBMIT_MANUAL_STAGING_DIR = '/tmp/'
 
 IDSUBMIT_FILE_TYPES = (
     'txt',
@@ -1064,14 +1063,6 @@ GROUP_ALIAS_DOMAIN = IETF_DOMAIN
 
 TEST_DATA_DIR = os.path.abspath(BASE_DIR + "/../test/data")
 
-# Path to the email alias lists.  Used by ietf.utils.aliases
-DRAFT_ALIASES_PATH = os.path.join(TEST_DATA_DIR, "draft-aliases")
-DRAFT_VIRTUAL_PATH = os.path.join(TEST_DATA_DIR, "draft-virtual")
-DRAFT_VIRTUAL_DOMAIN = "virtual.ietf.org"
-
-GROUP_ALIASES_PATH = os.path.join(TEST_DATA_DIR, "group-aliases")
-GROUP_VIRTUAL_PATH = os.path.join(TEST_DATA_DIR, "group-virtual")
-GROUP_VIRTUAL_DOMAIN = "virtual.ietf.org"
 
 POSTCONFIRM_PATH   = "/a/postconfirm/wrapper"
 
