@@ -3,13 +3,18 @@
 # Celery task definitions
 #
 import datetime
+import base64
 import debug  # pyflakes:ignore
+import hashlib
+import json
+import time
 
 from celery import shared_task
 from pathlib import Path
 
 from django.conf import settings
 from django.utils import timezone
+from django.core.cache import caches
 
 from ietf.utils import log
 from ietf.utils.timezone import datetime_today
@@ -66,6 +71,19 @@ def notify_expirations_task(notify_days=14):
     for doc in get_soon_to_expire_drafts(notify_days):
         send_expire_warning_for_draft(doc)
 
+@shared_task
+def generate_fake_pdf(cache_key, name, rev=None):
+    print("in generate_fake_pdf celery task")
+    pdf_base64_string = 'JVBERi0xLjEKJcKlwrHDqwoKMSAwIG9iagogIDw8IC9UeXBlIC9DYXRhbG9nCiAgICAgL1BhZ2VzIDIgMCBSCiAgPj4KZW5kb2JqCgoyIDAgb2JqCiAgPDwgL1R5cGUgL1BhZ2VzCiAgICAgL0tpZHMgWzMgMCBSXQogICAgIC9Db3VudCAxCiAgICAgL01lZGlhQm94IFswIDAgMzAwIDE0NF0KICA+PgplbmRvYmoKCjMgMCBvYmoKICA8PCAgL1R5cGUgL1BhZ2UKICAgICAgL1BhcmVudCAyIDAgUgogICAgICAvUmVzb3VyY2VzCiAgICAgICA8PCAvRm9udAogICAgICAgICAgIDw8IC9GMQogICAgICAgICAgICAgICA8PCAvVHlwZSAvRm9udAogICAgICAgICAgICAgICAgICAvU3VidHlwZSAvVHlwZTEKICAgICAgICAgICAgICAgICAgL0Jhc2VGb250IC9UaW1lcy1Sb21hbgogICAgICAgICAgICAgICA+PgogICAgICAgICAgID4+CiAgICAgICA+PgogICAgICAvQ29udGVudHMgNCAwIFIKICA+PgplbmRvYmoKCjQgMCBvYmoKICA8PCAvTGVuZ3RoIDU1ID4+CnN0cmVhbQogIEJUCiAgICAvRjEgMTggVGYKICAgIDAgMCBUZAogICAgKEhlbGxvIFdvcmxkKSBUagogIEVUCmVuZHN0cmVhbQplbmRvYmoKCnhyZWYKMCA1CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxOCAwMDAwMCBuIAowMDAwMDAwMDc3IDAwMDAwIG4gCjAwMDAwMDAxNzggMDAwMDAgbiAKMDAwMDAwMDQ1NyAwMDAwMCBuIAp0cmFpbGVyCiAgPDwgIC9Sb290IDEgMCBSCiAgICAgIC9TaXplIDUKICA+PgpzdGFydHhyZWYKNTY1CiUlRU9GCg=='
+    pdf_base64_bytes = pdf_base64_string.encode("ascii")
+    pdf = base64.decodebytes(pdf_base64_bytes)
+    time.sleep(10) # simulate time to build PDF
+    cache = caches["pdfized"]
+    cache.set(
+        key=key,
+        value=pdf,
+    )
+    return true
 
 @shared_task
 def expire_last_calls_task():
