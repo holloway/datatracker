@@ -1309,6 +1309,7 @@ def document_pdfqueue(request, name, rev=None, ext=None):
     A_LOCK = "A LOCK".encode("ascii")
     pdf_magic_bytes = "%PDF".encode("ascii")
     pdf_cache_key = "%s-%s.pdf" % (name, rev)
+    print("Using pdf_cache_key=", pdf_cache_key)
     one_minute_in_seconds = 60
     cache = caches["pdfized"]
     cached_pdf = cache.get(pdf_cache_key)
@@ -1319,14 +1320,15 @@ def document_pdfqueue(request, name, rev=None, ext=None):
         print("starting celery task. Lock set as", a_lock_cache_value, " from ", A_LOCK)
         result = generate_fake_pdf.delay(pdf_cache_key, name, rev)
     else:
-        cached_pdf_header = cached_pdf[0:len(pdf_magic_bytes)]
-        print("A cached value exists,", cached_pdf_header.decode("ascii"))
-        if cached_pdf_header == pdf_magic_bytes:
-            return HttpResponse(cached_pdf, content_type="application/pdf")       
-        else:
-            print(f"Cache didn't contain PDF. Was {cached_pdf}")
-            # assume A_LOCK
-            pass
+        if len(cached_pdf) >= len(pdf_magic_bytes):
+            cached_pdf_header = cached_pdf[0:len(pdf_magic_bytes)]
+            print("A cached value exists,", cached_pdf_header.decode("ascii"))
+            if cached_pdf_header == pdf_magic_bytes:
+                return HttpResponse(cached_pdf, content_type="application/pdf")       
+            else:
+                print(f"Cache didn't contain PDF. Was {cached_pdf}")
+                # assume A_LOCK
+                pass
     stepback_param_key = "stepback"
     stepback = float(request.GET.get(stepback_param_key, '1'))
     if stepback > 10:
@@ -1337,7 +1339,7 @@ def document_pdfqueue(request, name, rev=None, ext=None):
     <meta http-equiv="refresh" content="{refresh_time_seconds}; url={new_path}">
     Generating PDF. Please wait or <a href="{new_path}">click here</a>
     """
-    response = HttpResponse(html, status=307, content_type="text/html; charset=utf-8")
+    response = HttpResponse(html, status=503, content_type="text/html; charset=utf-8")
     response.headers["Refresh"] = f"{refresh_time_seconds}; url={new_path}"
     return response
 
