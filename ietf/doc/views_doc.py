@@ -38,12 +38,13 @@ import glob
 import json
 import os
 import re
+from datetime import timedelta, datetime
 
 from pathlib import Path
 
 from django.core.cache import caches
 from django.db.models import Max
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, HttpResponseServerError
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse as urlreverse
@@ -1067,9 +1068,36 @@ def document_pdfized(request, name, rev=None, ext=None):
     pdf = PdfizedDoc(doc).get()
     if pdf:
         return HttpResponse(pdf, content_type="application/pdf")
-    else:
+    
+    # else:
+    #     return HttpResponse(b"Not ready yet...")
+
+
+    # check if we've attempted to generate a PDF before
+    cache = caches["pdfized"]
+    previous_builds_key = f"previous-builds-{doc.name}{doc.rev}"
+    previous_builds_json = cache.get(previous_builds_key)
+    # previous_builds is an array of timestamps of previous attempts at building a PDF
+    previous_builds = json.loads(previous_builds_json) if previous_builds_json else []
+
+    if len(previous_builds) >= 3:
+        # TODO: alert sysops that there's a problem generating this PDF
+        return HttpResponseServerError("Unable to generate a PDF after 3 attempts. Giving up.")
+
+    # if we've never tried to make a PDF, or if the last attempt was over 3 minutes ago then build a new PDF
+    if len(previous_builds) == 0 or previous_builds[-1] < datetime.utcnow() + timedelta(minute = -3):
+        previous_builds.append(datetime.utcnow().timestamp())
+        cache.set(timestamp_cache_key, json.dumps(previous_builds))
         pdfize_document_task.delay(name=doc.name, rev=doc.rev)
-        return HttpResponse(b"Not ready yet...")
+    
+    refresh_time_seconds = 5
+    html = f"""
+    <meta http-equiv="refresh" content="{refresh_time_seconds}; url={request.path}">
+    Generating PDF. Please wait {refresh_time_seconds} seconds or <a href="{request.path}">click here to check again</a>
+    """
+    response = HttpResponse(html, status=503, content_type="text/html; charset=utf-8")
+    response.headers["Refresh"] = f"{refresh_time_seconds}; url={request.path}"
+    return response
 
 
 def document_email(request,name):
