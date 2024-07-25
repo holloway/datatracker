@@ -620,6 +620,7 @@ TEST_TEMPLATE_IGNORE = [
 
 TEST_COVERAGE_MAIN_FILE = os.path.join(BASE_DIR, "../release-coverage.json")
 TEST_COVERAGE_LATEST_FILE = os.path.join(BASE_DIR, "../latest-coverage.json")
+TEST_COVERAGE_VISITED_URLS = os.path.join(BASE_DIR, "../visited-urls.json")
 
 TEST_CODE_COVERAGE_CHECKER = None
 if SERVER_MODE != 'production':

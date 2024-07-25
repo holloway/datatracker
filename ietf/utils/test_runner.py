@@ -490,6 +490,11 @@ class CoverageReporter(Reporter):
         result["coverage"] = total.pc_covered/100.0
         return result
 
+class SetJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, set):
+            return list(obj)
+        return json.JSONEncoder.default(self, obj)
 
 class CoverageTest(unittest.TestCase):
 
@@ -539,8 +544,22 @@ class CoverageTest(unittest.TestCase):
             self.skipTest("Coverage switched off with --skip-coverage")
 
     def url_coverage_test(self):
+        global visited_urls
+        if len(visited_urls) > 0:
+            print(f"URL coverage collected during runtime. Cache updated with {len(visited_urls)} url(s)")
+            visited_urls_file = io.open(settings.TEST_COVERAGE_VISITED_URLS, 'w', encoding='utf-8')
+            json.dump(visited_urls, visited_urls_file, cls=SetJSONEncoder)
+            visited_urls_len_file = io.open(f"{settings.TEST_COVERAGE_VISITED_URLS}-{len(visited_urls)}.json", 'w', encoding='utf-8')
+            json.dump(visited_urls, visited_urls_len_file, cls=SetJSONEncoder)
+        else: # no urls were visited. Use cache file.
+            visited_urls_file = io.open(settings.TEST_COVERAGE_VISITED_URLS, 'r', encoding='utf-8')
+            visited_urls_list = json.load(visited_urls_file)
+            visited_urls = set(visited_urls_list)
+            print(f"URL coverage loaded from cache: {len(visited_urls)} url(s)")
+
         if self.runner.check_coverage:
             import ietf.urls
+            print("self.runner.test_apps", self.runner.test_apps, len(self.runner.test_apps))
             url_patterns = get_url_patterns(ietf.urls, self.runner.test_apps)
             #debug.pprint('[ r for r,p in url_patterns]')
 
@@ -560,18 +579,28 @@ class CoverageTest(unittest.TestCase):
                         if not ignore_pattern(regex, obj)]
 
             covered = set()
+            uncovered = set()
             for url in visited_urls:
                 for regex, compiled, obj in patterns:
                     if regex not in covered and compiled.match(url[1:]): # strip leading /
                         covered.add(regex)
-                        break
+
+            for regex, compiled, obj in patterns:
+                if regex not in covered:
+                    uncovered.add(regex)
 
             self.runner.coverage_data["url"] = {
                 "coverage": 1.0*len(covered)/len(patterns),
                 "covered": dict( (k, (o.lookup_str, k in covered)) for k,p,o in patterns ),
                 "format": 4,
                 }
-
+            print(":::",
+                1.0*len(covered)/(len(covered) + len(uncovered)),
+                1.0*len(covered)/len(patterns),
+                len(patterns),
+                len(uncovered),
+                uncovered,
+            )
             self.report_test_result("url")
         else:
             self.skipTest("Coverage switched off with --skip-coverage")
