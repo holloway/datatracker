@@ -8,8 +8,9 @@ const app = createApp(App, {})
 
 // Initialize store (Pinia)
 
-const pinia = createPinia()
-pinia.use(piniaPersist)
+window.pinia = window.pinia ?? createPinia()
+// pinia.use(piniaPersist)
+app.use(window.pinia)
 app.use(pinia)
 
 // Initialize router

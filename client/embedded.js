@@ -5,7 +5,7 @@ import Embedded from './Embedded.vue'
 
 // Initialize store (Pinia)
 
-const pinia = createPinia()
+window.pinia = window.pinia ?? createPinia()
 pinia.use(piniaPersist)
 
 // Mount App
@@ -16,6 +16,6 @@ for (const mnt of mountEls) {
     componentName: mnt.dataset.component,
     componentId: mnt.dataset.componentId
   })
-  app.use(pinia)
+  app.use(window.pinia)
   app.mount(mnt)
 }
